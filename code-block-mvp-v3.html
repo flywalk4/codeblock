@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVP - Блок выполнения кода</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            color: #2d3748;
+            display: flex;
+            gap: 20px;
+        }
+
+        .json-input-panel {
+            width: 300px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .json-input-panel h3 {
+            color: #4a5568;
+            margin-bottom: 16px;
+            font-size: 16px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .json-textarea {
+            width: 100%;
+            height: 200px;
+            background: #1a202c;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .json-textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+        }
+
+        .apply-json-btn {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .apply-json-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .container {
+            flex: 1;
+            max-width: 900px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .parameter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .parameter-item {
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .parameter-number {
+            background: #3182ce;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .parameter-content {
+            flex: 1;
+        }
+
+        .parameter-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .parameter-value {
+            font-size: 14px;
+            color: #2d3748;
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            width: 100%;
+        }
+
+        .parameter-value:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+        }
+
+        .delete-param-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 14px;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .delete-param-btn:hover {
+            background: #c53030;
+        }
+
+        .add-parameter {
+            display: flex;
+            align-items: center;
+            color: #3182ce;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 12px;
+            transition: color 0.2s;
+            background: #e6fffa;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px dashed #3182ce;
+        }
+
+        .add-parameter:hover {
+            color: #2c5282;
+            background: #b2f5ea;
+        }
+
+        .add-parameter::before {
+            content: '+';
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .code-section {
+            margin-bottom: 32px;
+        }
+
+        .code-editor {
+            background: #1a202c;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            width: 100%;
+            min-height: 300px;
+            resize: vertical;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3);
+        }
+
+        .readonly-area {
+            color: #718096;
+            background: #2d3748;
+        }
+
+        .save-button {
+            background: linear-gradient(135deg, #3182ce, #2c5282);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 24px;
+        }
+
+        .save-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+        }
+
+        .run-button {
+            background: linear-gradient(135deg, #38a169, #2f855a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 12px;
+            transition: transform 0.2s;
+        }
+
+        .run-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .output-area {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .output-content {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            color: #2d3748;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .line-numbers {
+            color: #4a5568;
+            user-select: none;
+            margin-right: 16px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .code-container {
+            display: flex;
+            background: #1a202c;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .editable-area {
+            flex: 1;
+            background: #1a202c;
+            color: #e2e8f0;
+            border: none;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 16px;
+            resize: none;
+            min-height: 150px;
+        }
+
+        .editable-area:focus {
+            outline: none;
+        }
+
+        .readonly-code {
+            background: #2d3748;
+            color: #718096;
+            padding: 16px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <!-- Левая панель для JSON -->
+    <div class="json-input-panel">
+        <h3>🔧 Входные JSON данные</h3>
+        <textarea class="json-textarea" id="jsonInput" placeholder="Введите JSON данные для тестирования...">
+{
+  "arrayIn": [1, 2, 3, 4, 5],
+  "stringSearch": "test",
+  "userData": {
+    "name": "Иван",
+    "age": 30
+  }
+}</textarea>
+        <button class="apply-json-btn" onclick="applyJsonData()">Применить данные</button>
+        
+        <div style="margin-top: 20px; padding: 12px; background: #f7fafc; border-radius: 8px; font-size: 12px; color: #4a5568;">
+            <strong>💡 Подсказка:</strong><br>
+            Эти данные будут доступны в коде как переменные входных параметров.
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>💻 Блок выполнения кода</h1>
+            <p>Настройка входных и выходных параметров</p>
+        </div>
+
+        <div class="content">
+            <!-- Выходные параметры -->
+            <div class="section">
+                <div class="section-title">📤 Выходные параметры</div>
+                <div class="parameter-list" id="outputParams">
+                    <div class="parameter-item">
+                        <div class="parameter-number">1</div>
+                        <div class="parameter-content">
+                            <div class="parameter-label">Параметр *</div>
+                            <input type="text" class="parameter-value" value="arrayIn" onchange="updateCode()">
+                        </div>
+                        <button class="delete-param-btn" onclick="deleteParam(this, 'output')">&times;</button>
+                    </div>
+                    <div class="parameter-item">
+                        <div class="parameter-number">2</div>
+                        <div class="parameter-content">
+                            <div class="parameter-label">Параметр *</div>
+                            <input type="text" class="parameter-value" value="stringSearch" onchange="updateCode()">
+                        </div>
+                        <button class="delete-param-btn" onclick="deleteParam(this, 'output')">&times;</button>
+                    </div>
+                </div>
+                <div class="add-parameter" onclick="addOutputParam()">Добавить параметр</div>
+            </div>
+
+            <!-- Входные параметры -->
+            <div class="section">
+                <div class="section-title">📥 Входные параметры</div>
+                <div class="parameter-list" id="inputParams">
+                    <div class="parameter-item">
+                        <div class="parameter-number">1</div>
+                        <div class="parameter-content">
+                            <div class="parameter-label">Параметр *</div>
+                            <input type="text" class="parameter-value" value="name" onchange="updateCode()">
+                        </div>
+                        <button class="delete-param-btn" onclick="deleteParam(this, 'input')">&times;</button>
+                    </div>
+                    <div class="parameter-item">
+                        <div class="parameter-number">2</div>
+                        <div class="parameter-content">
+                            <div class="parameter-label">Параметр *</div>
+                            <input type="text" class="parameter-value" value="surname" onchange="updateCode()">
+                        </div>
+                        <button class="delete-param-btn" onclick="deleteParam(this, 'input')">&times;</button>
+                    </div>
+                </div>
+                <div class="add-parameter" onclick="addInputParam()">Добавить параметр</div>
+            </div>
+
+            <!-- Выполняемый код -->
+            <div class="code-section">
+                <div class="section-title">⚡ Выполняемый код</div>
+                <div class="code-container">
+                    <div class="line-numbers" id="lineNumbers"></div>
+                    <div style="flex: 1;">
+                        <!-- Readonly секция сверху -->
+                        <div class="readonly-code" id="readonlyTop"></div>
+                        
+                        <!-- Редактируемая область -->
+                        <textarea class="editable-area" id="editableCode" onscroll="syncScroll()" oninput="updateLineNumbers()" placeholder="// Ваш код здесь...
+// Используйте входные параметры для обработки данных"></textarea>
+                        
+                        <!-- Readonly секция снизу -->
+                        <div class="readonly-code" id="readonlyBottom"></div>
+                    </div>
+                </div>
+                <button class="save-button" onclick="saveCode()">💾 Сохранить</button>
+                <button class="run-button" onclick="runCode()">▶️ Запустить</button>
+            </div>
+
+            <!-- Область вывода -->
+            <div class="output-area">
+                <div class="section-title" style="margin-bottom: 12px; border: none; padding: 0;">🖥️ Вывод результата</div>
+                <div class="output-content" id="output">Результат выполнения кода появится здесь...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let outputParamCount = 2;
+        let inputParamCount = 2;
+        let jsonData = {};
+
+        function applyJsonData() {
+            const jsonInput = document.getElementById('jsonInput');
+            try {
+                jsonData = JSON.parse(jsonInput.value);
+                document.getElementById('output').textContent = '✅ JSON данные успешно применены!\n📊 Данные готовы к использованию в коде.';
+            } catch (error) {
+                document.getElementById('output').textContent = '❌ Ошибка в JSON формате:\n' + error.message;
+            }
+        }
+
+        function addOutputParam() {
+            outputParamCount++;
+            const paramList = document.getElementById('outputParams');
+            const paramDiv = document.createElement('div');
+            paramDiv.className = 'parameter-item';
+            paramDiv.innerHTML = `
+                <div class="parameter-number">${outputParamCount}</div>
+                <div class="parameter-content">
+                    <div class="parameter-label">Параметр *</div>
+                    <input type="text" class="parameter-value" value="newParam${outputParamCount}" onchange="updateCode()">
+                </div>
+                <button class="delete-param-btn" onclick="deleteParam(this, 'output')">&times;</button>
+            `;
+            paramList.appendChild(paramDiv);
+            updateCode();
+        }
+
+        function addInputParam() {
+            inputParamCount++;
+            const paramList = document.getElementById('inputParams');
+            const paramDiv = document.createElement('div');
+            paramDiv.className = 'parameter-item';
+            paramDiv.innerHTML = `
+                <div class="parameter-number">${inputParamCount}</div>
+                <div class="parameter-content">
+                    <div class="parameter-label">Параметр *</div>
+                    <input type="text" class="parameter-value" value="newParam${inputParamCount}" onchange="updateCode()">
+                </div>
+                <button class="delete-param-btn" onclick="deleteParam(this, 'input')">&times;</button>
+            `;
+            paramList.appendChild(paramDiv);
+            updateCode();
+            renumberParams();
+        }
+
+        function deleteParam(button, type) {
+            const paramItem = button.parentElement;
+            paramItem.remove();
+            renumberParams();
+            updateCode();
+        }
+
+        function renumberParams() {
+            // Перенумеровать выходные параметры
+            const outputItems = document.querySelectorAll('#outputParams .parameter-item');
+            outputItems.forEach((item, index) => {
+                item.querySelector('.parameter-number').textContent = index + 1;
+            });
+
+            // Перенумеровать входные параметры
+            const inputItems = document.querySelectorAll('#inputParams .parameter-item');
+            inputItems.forEach((item, index) => {
+                item.querySelector('.parameter-number').textContent = index + 1;
+            });
+        }
+
+        function updateCode() {
+            // Получить все выходные параметры
+            const outputParams = Array.from(document.querySelectorAll('#outputParams .parameter-value'))
+                .map(input => input.value)
+                .filter(val => val.trim() !== '');
+
+            // Получить все входные параметры
+            const inputParams = Array.from(document.querySelectorAll('#inputParams .parameter-value'))
+                .map(input => input.value)
+                .filter(val => val.trim() !== '');
+
+            // Обновить readonly секции
+            const readonlyTop = document.getElementById('readonlyTop');
+            const readonlyBottom = document.getElementById('readonlyBottom');
+
+            // Верхняя часть - объявление переменных из выходных параметров
+            let topCode = '';
+            outputParams.forEach(param => {
+                topCode += `var ${param} = dataIn.${param};\n`;
+            });
+            if (topCode) topCode += '\n//Код можно писать тут\n\n';
+
+            // Нижняя часть - возврат входных параметров
+            let bottomCode = '\n\nreturn {\n';
+            inputParams.forEach((param, index) => {
+                bottomCode += `    "${param}": ${param}${index < inputParams.length - 1 ? ',' : ''}\n`;
+            });
+            bottomCode += '}';
+
+            readonlyTop.textContent = topCode;
+            readonlyBottom.textContent = bottomCode;
+
+            updateLineNumbers();
+        }
+
+        function updateLineNumbers() {
+            const readonlyTop = document.getElementById('readonlyTop');
+            const editableCode = document.getElementById('editableCode');
+            const readonlyBottom = document.getElementById('readonlyBottom');
+            const lineNumbers = document.getElementById('lineNumbers');
+
+            const topLines = (readonlyTop.textContent.match(/\n/g) || []).length + 1;
+            const editableLines = (editableCode.value.match(/\n/g) || []).length + 1;
+            const bottomLines = (readonlyBottom.textContent.match(/\n/g) || []).length + 1;
+            
+            const totalLines = topLines + editableLines + bottomLines;
+            
+            let lineNumbersText = '';
+            for (let i = 1; i <= totalLines; i++) {
+                lineNumbersText += i + '<br>';
+            }
+            lineNumbers.innerHTML = lineNumbersText;
+        }
+
+        function syncScroll() {
+            // Синхронизация прокрутки (если нужно)
+        }
+
+        function saveCode() {
+            const output = document.getElementById('output');
+            output.textContent = '✅ Код успешно сохранен!\n⏰ Время сохранения: ' + new Date().toLocaleTimeString();
+        }
+
+        function runCode() {
+            const editableCode = document.getElementById('editableCode');
+            const readonlyTop = document.getElementById('readonlyTop');
+            const readonlyBottom = document.getElementById('readonlyBottom');
+            const output = document.getElementById('output');
+            
+            // Объединить все части кода
+            const fullCode = readonlyTop.textContent + editableCode.value + readonlyBottom.textContent;
+            
+            try {
+                // Создаем функцию из полного кода
+                const userFunction = new Function('dataIn', fullCode);
+                
+                // Применить JSON данные если есть
+                const inputData = Object.keys(jsonData).length > 0 ? jsonData : {
+                    arrayIn: [1, 2, 3, 4, 5],
+                    stringSearch: "test"
+                };
+                
+                const result = userFunction(inputData);
+                
+                output.textContent = `✅ Код выполнен успешно!
+⏰ Время выполнения: ${new Date().toLocaleTimeString()}
+📊 Результат:
+${JSON.stringify(result, null, 2)}
+
+📥 Входные данные:
+${JSON.stringify(inputData, null, 2)}`;
+                
+            } catch (error) {
+                output.textContent = `❌ Ошибка выполнения:
+${error.message}
+⏰ Время: ${new Date().toLocaleTimeString()}
+
+💻 Полный код:
+${fullCode}`;
+            }
+        }
+
+        // Инициализация
+        applyJsonData();
+        updateCode();
+    </script>
+</body>
+</html>
